@@ -18,9 +18,11 @@ client = commands.Bot(command_prefix="/", intents=intents)
 
 pre_game_messages = "Ready to roll? Select High or Low then Use /roll (number)"
 
+
 @client.event
 async def on_ready():
     print(f'Logged in as {client.user}')
+
 
 class RollGameView(View):
     def __init__(self, ctx, timeout):
@@ -31,9 +33,11 @@ class RollGameView(View):
     @discord.ui.button(label='High')
     async def high_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message(f"{self.ctx.author.mention} selected High.", ephemeral=False)
+
     @discord.ui.button(label="Low")
     async def low_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message(f"{self.ctx.author.mention} selected Low.", ephemeral=False)
+
 
 @client.command(name="HoL")
 async def HoL(ctx):
@@ -42,11 +46,13 @@ async def HoL(ctx):
     view = RollGameView(ctx, timeout=30)
     await ctx.send(view=view)
 
+
 @client.event
 async def on_command_error(ctx, error):
     if isinstance(error, MissingRequiredArgument):
         results = random.randint(1, 100)
         await ctx.send(f"{ctx.author.mention} rolled: {results} (1-100)")
+
 
 @client.command(name="roll")
 async def roll(ctx, num_roll: int):
@@ -55,5 +61,6 @@ async def roll(ctx, num_roll: int):
         return
     results = random.randint(1, num_roll)
     await ctx.send(f"{ctx.author.mention} rolled: {results} (1-{num_roll})")
+
 
 client.run(TOKEN)
