@@ -12,7 +12,6 @@ public:
         const dpp::cluster& bot,
         const dpp::slashcommand_t& event): bot(bot), event(event) {
     }
-    void roll() const;
     void showButton() const;
     ~roll_game() = default;
 private:

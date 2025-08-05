@@ -3,7 +3,7 @@
 #include "roll_game.h"
 #include "sdtstrhelper.h"
 #include "stringconstants.h"
-const std::string BOT_TOKEN = "test";
+const std::string BOT_TOKEN = "";
 
 bool is_valid_roll(const dpp::command_value &num_roll) {
     if (const int* num = std::get_if<int>(&num_roll)) {
@@ -23,7 +23,8 @@ int random_between(const int min, const int max) {
     return dis(gen);
 }
 
-int main() {
+int main(const std::vector<std::string> &args) {
+    std::string bot_token = args[0];
     roll_game* game = nullptr;
     dpp::cluster bot(BOT_TOKEN);
     bot.intents = dpp::intents::i_message_content | dpp::intents::i_guild_members | dpp::intents::i_default_intents;
@@ -46,6 +47,21 @@ int main() {
             }
         }
     });
+    bot.on_button_click([&bot](const dpp::button_click_t& event) -> dpp::task<> {
+        std::string mention = event.command.member.get_mention();
+        std::string content = event.custom_id == "highRoll" ? "High" : "Low";
+        dpp::message message(event.command.channel_id, mention + " selected High.");
+        bot.message_create(message);
+        co_return;
+    });
+
+    bot.on_ready([&bot](const dpp::ready_t& event) {
+       if (dpp::run_once<struct register_bot_commands>()) {
+           bot.global_command_create(dpp::slashcommand("roll", dpp::ctxm_chat_input, bot.me.id));
+       }
+    });
+
+    bot.start(dpp::st_wait);
 
     return 0;
 }
