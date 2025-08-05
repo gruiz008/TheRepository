@@ -9,17 +9,15 @@
 class roll_game {
 public:
     roll_game(
-        dpp::cluster& bot,
-        dpp::slashcommand_t& event,
-        const int* max): bot(bot), event(event), max(*max) {
-
+        const dpp::cluster& bot,
+        const dpp::slashcommand_t& event): bot(bot), event(event) {
     }
     void roll() const;
+    void showButton() const;
     ~roll_game() = default;
 private:
-    dpp::cluster &bot;
-    dpp::slashcommand_t &event;
-    int max = 100;
+    const dpp::cluster &bot;
+    const dpp::slashcommand_t &event;
 };
 
 

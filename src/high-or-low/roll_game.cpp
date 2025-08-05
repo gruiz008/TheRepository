@@ -20,3 +20,31 @@ void roll_game::roll() const {
     const dpp::message msg(event.command.channel_id, rolled_message);
     bot.message_create(msg);
 }
+
+void roll_game::showButton() const {
+    dpp::message msg(event.command.channel_id, "");
+    msg.add_component(
+        dpp::component()
+            .set_label("High")
+            .set_type(dpp::cot_button)
+            .set_style(dpp::cos_primary)
+            .set_id("highRoll")
+    );
+
+    msg.add_component(dpp::component()
+        .set_label("Low")
+        .set_type(dpp::cot_button)
+        .set_style(dpp::cos_secondary)
+        .set_id("lowRoll")
+    );
+
+    event.reply(msg);
+
+    bot.on_button_click([this](const dpp::button_click_t& event) {
+        std::string mention = event.command.member.get_mention();
+        std::string content = event.custom_id == "highRoll" ? "High" : "Low";
+        dpp::message msg(event.command.channel_id, mention + " selected High.");
+        bot.message_create(msg);
+    });
+}
+
