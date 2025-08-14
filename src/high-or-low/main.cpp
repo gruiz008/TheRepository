@@ -1,3 +1,4 @@
+#define DPP_CORO 1
 #include <random>
 #include <dpp/dpp.h>
 #include "roll_game.h"
@@ -6,7 +7,7 @@
 const std::string BOT_TOKEN = "";
 
 bool is_valid_roll(const dpp::command_value &num_roll) {
-    if (const int* num = std::get_if<int>(&num_roll)) {
+    if (const int64_t *num = std::get_if<int64_t>(&num_roll)) {
         if (*num > 0) {
             return true;
         }
@@ -23,31 +24,52 @@ int random_between(const int min, const int max) {
     return dis(gen);
 }
 
-int main(const std::vector<std::string> &args) {
-    std::string bot_token = args[0];
-    roll_game* game = nullptr;
-    dpp::cluster bot(BOT_TOKEN);
-    bot.intents = dpp::intents::i_message_content | dpp::intents::i_guild_members | dpp::intents::i_default_intents;
-    bot.on_slashcommand([&bot, &game](const dpp::slashcommand_t& event) {
-         const std::string command_name = to_lower(event.command.get_command_name());
+int main(int argc, char **argv) {
+    std::string bot_token = BOT_TOKEN;
+    const bool coro_support = dpp::utility::is_coro_enabled();
+    if (!coro_support) {
+        std::cerr << "D++ coroutine support is not enabled. Please enable it to run this bot." << std::endl;
+        return 1;
+    }
+    if (argc > 1) {
+        bot_token = argv[1];
+    }
+    roll_game *game = nullptr;
+    dpp::cluster bot(bot_token);
+    bot.intents = dpp::intents::i_guilds | dpp::intents::i_message_content | dpp::intents::i_guild_members |
+                  dpp::intents::i_default_intents;
+    bot.on_ready([&bot](const dpp::ready_t &event) {
+        if (dpp::run_once<struct register_bot_commands>()) {
+            std::cout << "Bot is online as " << bot.me.username << std::endl;
+            bot.global_command_create(dpp::slashcommand("hol", "Start a High or Low game", bot.me.id));
+            bot.global_command_create(dpp::slashcommand("roll", "Roll a number against a range", bot.me.id)
+                .add_option(dpp::command_option(dpp::co_integer, "num_roll", "The number to roll against", false)));
+        }
+    });
+    bot.on_slashcommand([&bot, &game](const dpp::slashcommand_t &event) {
+        const std::string command_name = to_lower(event.command.get_command_name());
         if (to_lower(command_name) == "hol") {
             event.reply(pre_game_message);
-
             game = new roll_game(bot, event);
         }
         if (to_lower(command_name) == "roll") {
             const dpp::command_value num_roll = event.get_parameter("num_roll");
             if (is_valid_roll(num_roll)) {
-                const int* num = std::get_if<int>(&num_roll);
-                int rolled_number = random_between(1, *num);
-                const dpp::message msg(event.command.channel_id, std::format("{} rolled: {} (1-{})", event.command.get_issuing_user().get_mention(), rolled_number, *num));
+                const int64_t *num = std::get_if<int64_t>(&num_roll);
+                const int value = static_cast<int>(*num);
+                const int rolled_number = random_between(1, value);
+                const std::string mention = event.command.member.get_mention();
+                const std::string rolled_message =
+                        mention + " rolled: " + std::to_string(rolled_number) + " (1-" + std::to_string(value) + ")";
+
+                const dpp::message msg(event.command.channel_id, rolled_message);
                 bot.message_create(msg);
             } else {
                 event.reply("Roll a valid number greater than 0 ya goof.");
             }
         }
     });
-    bot.on_button_click([&bot](const dpp::button_click_t& event) -> dpp::task<> {
+    bot.on_button_click([&bot](const dpp::button_click_t &event) -> dpp::task<> {
         std::string mention = event.command.member.get_mention();
         std::string content = event.custom_id == "highRoll" ? "High" : "Low";
         dpp::message message(event.command.channel_id, mention + " selected High.");
@@ -55,10 +77,10 @@ int main(const std::vector<std::string> &args) {
         co_return;
     });
 
-    bot.on_ready([&bot](const dpp::ready_t& event) {
-       if (dpp::run_once<struct register_bot_commands>()) {
-           bot.global_command_create(dpp::slashcommand("roll", dpp::ctxm_chat_input, bot.me.id));
-       }
+    bot.on_ready([&bot](const dpp::ready_t &event) {
+        if (dpp::run_once<struct register_bot_commands>()) {
+            bot.global_command_create(dpp::slashcommand("roll", dpp::ctxm_chat_input, bot.me.id));
+        }
     });
 
     bot.start(dpp::st_wait);
