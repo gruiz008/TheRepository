@@ -34,14 +34,15 @@ int main(int argc, char **argv) {
     if (argc > 1) {
         bot_token = argv[1];
     }
+
     roll_game *game = nullptr;
     dpp::cluster bot(bot_token);
-    bot.intents = dpp::intents::i_guilds | dpp::intents::i_message_content | dpp::intents::i_guild_members |
-                  dpp::intents::i_default_intents;
+    bot.on_log(dpp::utility::cout_logger());
+    bot.intents = dpp::intents::i_guilds;
     bot.on_ready([&bot](const dpp::ready_t &event) {
         if (dpp::run_once<struct register_bot_commands>()) {
             std::cout << "Bot is online as " << bot.me.username << std::endl;
-            bot.global_command_create(dpp::slashcommand("hol", "Start a High or Low game", bot.me.id));
+            bot.global_command_create(dpp::slashcommand("HoL", "Start a High or Low game", bot.me.id));
             bot.global_command_create(dpp::slashcommand("roll", "Roll a number against a range", bot.me.id)
                 .add_option(dpp::command_option(dpp::co_integer, "num_roll", "The number to roll against", false)));
         }
@@ -77,13 +78,6 @@ int main(int argc, char **argv) {
         co_return;
     });
 
-    bot.on_ready([&bot](const dpp::ready_t &event) {
-        if (dpp::run_once<struct register_bot_commands>()) {
-            bot.global_command_create(dpp::slashcommand("roll", dpp::ctxm_chat_input, bot.me.id));
-        }
-    });
 
     bot.start(dpp::st_wait);
-
-    return 0;
 }
