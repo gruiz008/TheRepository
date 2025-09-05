@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     dpp::cluster bot(bot_token);
     bot.on_log(dpp::utility::cout_logger());
     bot.intents = dpp::intents::i_guilds;
-    bot.on_ready([&bot](const dpp::ready_t &event) {
+    bot.on_ready([&bot](const dpp::ready_t &) {
         if (dpp::run_once<struct register_bot_commands>()) {
             std::cout << "Bot is online as " << bot.me.username << std::endl;
             bot.global_command_create(dpp::slashcommand("HoL", "Start a High or Low game", bot.me.id));
@@ -51,6 +51,10 @@ int main(int argc, char **argv) {
         const std::string command_name = to_lower(event.command.get_command_name());
         if (to_lower(command_name) == "hol") {
             event.reply(pre_game_message);
+            if (game != nullptr) {
+                delete game;
+                game = nullptr;
+            }
             game = new roll_game(bot, event);
         }
         if (to_lower(command_name) == "roll") {
@@ -70,12 +74,12 @@ int main(int argc, char **argv) {
             }
         }
     });
-    bot.on_button_click([&bot](const dpp::button_click_t &event) -> dpp::task<> {
-        std::string mention = event.command.member.get_mention();
+
+    bot.on_button_click([&bot](const dpp::button_click_t &event) {
+        const std::string mention = event.command.member.get_mention();
         std::string content = event.custom_id == "highRoll" ? "High" : "Low";
-        dpp::message message(event.command.channel_id, mention + " selected High.");
+        const dpp::message message(event.command.channel_id, mention + " selected High.");
         bot.message_create(message);
-        co_return;
     });
 
 
