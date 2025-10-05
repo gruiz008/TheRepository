@@ -13,6 +13,7 @@ intents = discord.Intents.default()
 intents.messages = True
 intents.members = True
 intents.message_content = True
+user_inputs = {}
 
 client = commands.Bot(command_prefix="/", intents=intents)
 
@@ -21,39 +22,42 @@ pre_game_messages = "Ready to roll? Select High or Low then Use /roll (number)"
 @client.event
 async def on_ready():
     print(f'Logged in as {client.user}')
+    try:
+        synced = await client.tree.sync()
+        print(f"Synced {len(synced)} command(s)")
+    except Exception as e:
+        print(f"Error syncing commands: {e}")
 
 class RollGameView(View):
-    def __init__(self, ctx, timeout):
-        super().__init__()
+    def __init__(self, ctx, timeout=30):
+        super().__init__(timeout=timeout)
         self.ctx = ctx
-        self.timeout = timeout
 
     @discord.ui.button(label='High')
     async def high_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message(f"{self.ctx.author.mention} selected High.", ephemeral=False)
+        await interaction.response.send_message(f"{self.ctx.user.mention} selected High.", ephemeral=False)
     @discord.ui.button(label="Low")
     async def low_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message(f"{self.ctx.author.mention} selected Low.", ephemeral=False)
+        await interaction.response.send_message(f"{self.ctx.user.mention} selected Low.", ephemeral=False)
 
-@client.command(name="HoL")
-async def HoL(ctx):
-    await ctx.send(pre_game_messages)
-
+@client.tree.command(name="hol")
+async def hol(ctx):
     view = RollGameView(ctx, timeout=30)
-    await ctx.send(view=view)
+    await ctx.response.send_message(pre_game_messages, view=view)
 
-@client.event
-async def on_command_error(ctx, error):
-    if isinstance(error, MissingRequiredArgument):
-        results = random.randint(1, 100)
-        await ctx.send(f"{ctx.author.mention} rolled: {results} (1-100)")
+#@client.event
+#async def on_command_error(ctx, error):
+#    if isinstance(error, MissingRequiredArgument):
+#        results = random.randint(1, 100)
+#        await ctx.response.send_message(f"{ctx.user.mention} rolled: {results} (1-100)")
 
-@client.command(name="roll")
+@client.tree.command(name="roll")
 async def roll(ctx, num_roll: int):
     if num_roll <= 0:
-        await ctx.send("Why did you try to roll a negative?! Roll again")
+        await ctx.response.send_message("Why did you try to roll a negative?! Roll again")
         return
     results = random.randint(1, num_roll)
-    await ctx.send(f"{ctx.author.mention} rolled: {results} (1-{num_roll})")
+
+    await ctx.response.send_message(f"{ctx.user.mention} rolled: {results} (1-{num_roll})")
 
 client.run(TOKEN)
